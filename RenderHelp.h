@@ -633,6 +633,7 @@ inline T matrix_det(const Matrix<2, 2, T> &m) {
 template<size_t N, typename T>
 inline T matrix_det(const Matrix<N, N, T> &m) {
 	T sum = 0;
+	// 取第一行每个元素与其余子式行列式相乘相加
 	for (size_t i = 0; i < N; i++) sum += m[0][i] * matrix_cofactor(m, 0, i);
 	return sum;
 }
@@ -643,9 +644,10 @@ inline T matrix_cofactor(const Matrix<1, 1, T> &m, size_t row, size_t col) {
 	return 0;
 }
 
-// 多阶余子式：即删除特定行列的子式的行列式值
+// 多阶代数余子式：即删除特定行列的子式的行列式值
 template<size_t N, typename T>
 inline T matrix_cofactor(const Matrix<N, N, T> &m, size_t row, size_t col) {
+	// 返回余子式的行列式，注意正负号根据行列号判断
 	return matrix_det(m.GetMinor(row, col)) * (((row + col) % 2)? -1 : 1);
 }
 
@@ -720,6 +722,7 @@ typedef Matrix<3, 4, float> Mat3x4f;
 //---------------------------------------------------------------------
 
 // 矢量转整数颜色
+// 用一个32位unsigned int类型来表示一个RGBA，每一个属性占8bit
 inline static uint32_t vector_to_color(const Vec4f& color) {
 	uint32_t r = (uint32_t)Between(0, 255, (int)(color.r * 255.0f));
 	uint32_t g = (uint32_t)Between(0, 255, (int)(color.g * 255.0f));
@@ -809,8 +812,8 @@ inline static Mat4x4f matrix_set_rotate(float x, float y, float z, float theta) 
 
 // 摄影机变换矩阵：eye/视点位置，at/看向哪里，up/指向上方的矢量
 inline static Mat4x4f matrix_set_lookat(const Vec3f& eye, const Vec3f& at, const Vec3f& up) {
-	Vec3f zaxis = vector_normalize(at - eye);
-	Vec3f xaxis = vector_normalize(vector_cross(up, zaxis));
+	Vec3f zaxis = vector_normalize(at - eye);						// 相机位置到视线的方向向量
+	Vec3f xaxis = vector_normalize(vector_cross(up, zaxis));		
 	Vec3f yaxis = vector_cross(zaxis, xaxis);
 	Mat4x4f m;
 	m.SetCol(0, Vec4f(xaxis.x, xaxis.y, xaxis.z, -vector_dot(eye, xaxis)));
@@ -842,16 +845,20 @@ class Bitmap
 public:
 	inline virtual ~Bitmap() { if (_bits) delete []_bits; _bits = NULL; }
 	inline Bitmap(int width, int height): _w(width), _h(height) {
+		// 每行_pitch个像素
 		_pitch = width * 4;
+		// 共_pitch*_h个像素
 		_bits = new uint8_t[_pitch * _h];
 		Fill(0);
 	}
 
+	// 拷贝构造
 	inline Bitmap(const Bitmap& src): _w(src._w), _h(src._h), _pitch(src._pitch) {
 		_bits = new uint8_t[_pitch * _h];
 		memcpy(_bits, src._bits, _pitch * _h);
 	}
 
+	// 从位图文件构造
 	inline Bitmap(const char *filename) {
 		Bitmap *tmp = LoadFile(filename);
 		if (tmp == NULL) {
